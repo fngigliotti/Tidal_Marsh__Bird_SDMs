@@ -1,0 +1,190 @@
+
+model {
+  
+  ##########################
+  #Priors and Hyperpriors###
+  ##########################
+  
+  # *** Priors and hyperpriors for model on lambda (t = 1 abundance) ***
+  # Priors
+  for(k in 1:nspecies){ # Loop over # of species 
+    alpha.lambda[k] ~ dnorm(mu.alpha.lambda, tau.alpha.lambda) # Intercepts
+    beta.lambda[k] ~ dnorm(mu.beta.lambda, tau.beta.lambda) #Coeffs
+  }
+  
+  # Hyperpriors
+    #Intercept
+    mu.alpha.lambda <- log(mean.lambda)
+    mean.lambda ~ dunif(0, 100) #initial abundance (mean across species)
+    sd.alpha.lambda ~ dnorm(0, 0.1)I(0,)
+    tau.alpha.lambda <- 1/(sd.alpha.lambda*sd.alpha.lambda)
+    
+    #Coefficient
+    mu.beta.lambda ~ dnorm(0,0.1)         
+    sd.beta.lambda ~ dnorm(0, 0.1)I(0,)
+    tau.beta.lambda <- 1/(sd.beta.lambda*sd.beta.lambda)
+  
+  # *** Priors and hyperpriors for model on phi (survival) ***
+  # Priors
+  for(k in 1:nspecies){ # Loop over # of species 
+    alpha.phi[k] ~ dnorm(mu.alpha.phi, tau.alpha.phi) #Intercepts
+    beta.phi[k] ~ dnorm(mu.beta.phi, tau.beta.phi) #Coeffs
+  }
+  
+  # Hyperpriors
+    #Intercept
+    mu.alpha.phi <- logit(mean.phi) 
+    mean.phi ~ dunif(0, 1) #mean yearly survival across species
+    sd.alpha.phi ~ dnorm(0, 0.1)I(0,)
+    tau.alpha.phi <- 1/(sd.alpha.phi*sd.alpha.phi)
+    
+    #Coefficient
+    mu.beta.phi ~ dnorm(0, 0.1) #No yearly variation in hyperprior for coeff
+    sd.beta.phi ~ dnorm(0, 0.1)I(0,)
+    tau.beta.phi <- 1/(sd.beta.phi*sd.beta.phi)
+  
+  # *** Priors and hyperpriors for model on gamma (recruitment) ***
+  # Priors
+  for(k in 1:nspecies){ # Loop over # of species 
+    alpha.gamma[k] ~ dnorm(mu.alpha.gamma, tau.alpha.gamma) #Intercepts
+    beta.gamma[k] ~ dnorm(mu.beta.gamma, tau.beta.gamma) #Coeffs
+  }
+  
+  # Hyperpriors
+    #Intercept
+    mu.alpha.gamma <- log(mean.gamma) 
+    mean.gamma ~ dunif(0, 10) #mean yearly recruitment across species
+    sd.alpha.gamma ~ dnorm(0, 0.1)I(0,)
+    tau.alpha.gamma <- 1/(sd.alpha.gamma*sd.alpha.gamma)
+    
+    #Coefficient
+    mu.beta.gamma ~ dnorm(0, 0.1) #No yearly variation in hyperprior for coeff
+    sd.beta.gamma ~ dnorm(0, 0.1)I(0,)
+    tau.beta.gamma <- 1/(sd.beta.gamma*sd.beta.gamma)
+  
+  # *** Priors and hyperpriors for model on kappa (emigration) ***
+  # Priors
+  for(k in 1:nspecies){ # Loop over # of species 
+    alpha.kappa[k] ~ dnorm(mu.alpha.kappa, tau.alpha.kappa) #Intercepts
+    beta.kappa[k] ~ dnorm(mu.beta.kappa, tau.beta.kappa) #Coeffs
+  }
+  
+  # Hyperpriors
+    #Intercept
+    mu.alpha.kappa <- logit(mean.kappa) 
+    mean.kappa ~ dunif(0, 1) #mean yearly emigration rate across species (conditional on survival)
+    sd.alpha.kappa ~ dnorm(0, 0.1)I(0,)
+    tau.alpha.kappa <- 1/(sd.alpha.kappa*sd.alpha.kappa)
+    
+    #Coefficient
+    mu.beta.kappa ~ dnorm(0, 0.1) #No yearly variation in hyperprior for coeff
+    sd.beta.kappa ~ dnorm(0, 0.1)I(0,)
+    tau.beta.kappa <- 1/(sd.beta.kappa*sd.beta.kappa)
+  
+  # *** Priors and hyperpriors for model on p (detection) ***
+  # Priors
+  for(k in 1:nspecies){ # Loop over # of species 
+    alpha.p[k] ~ dnorm(mu.alpha.p, tau.alpha.p) # Intercepts
+    beta.p[k] ~ dnorm(mu.beta.p, tau.beta.p) #Coeffs
+  }
+  
+  # Hyperpriors
+    #Intercept
+    mu.alpha.p <- logit(mean.p)
+    mean.p ~ dunif(0, 1) #Mean detection across species
+    sd.alpha.p ~ dnorm(0, 0.1)I(0,)
+    tau.alpha.p <- 1/(sd.alpha.p*sd.alpha.p)
+    
+    #Coefficient
+    mu.beta.p ~ dnorm(0, 0.1) #No yearly variation in hyperprior for coeff
+    sd.beta.p ~ dnorm(0, 0.1)I(0,)
+    tau.beta.p <- 1/(sd.beta.p*sd.beta.p)
+    
+  ######################
+  ###Model Likelihood###
+  ######################
+  
+  ###Ecological submodel: Define state conditional on parameters
+  
+  ##Abundance
+  #Initial Abundance (t=1)
+  for(i in 1:nsites){
+    for(k in 1:nspecies){
+      N[i,k,1] ~ dpois(lambda[i,k]) #initial abundance of species k at site i (year 1)
+      log(lambda[i,k]) <- alpha.lambda[k] + beta.lambda[k] * cov.lambda[i]
+      #Link function for site/spp.-cov influence on abundance of spp. k at site i
+      for(t in 1:(nyears-1)){
+        N[i,k,t+1] <- S[i,k,t+1] - E[i,k,t+1] + R[i,k,t+1] + I[i,k,t+1] #t+1 abundance of species k at site i
+      }#t
+    }#k
+  }#i
+  
+  ##Survival (constant across years)
+  for(i in 1:nsites){
+    for(k in 1:nspecies){
+      for(t in 1:(nyears-1)){
+        S[i,k,t+1] ~ dbin(phi[i,k], N[i,k,t]) #survival of spp. k at site i (constant across years)
+      }#t
+      logit(phi[i,k]) <- alpha.phi[k] + beta.phi[k] * cov.phi[i]
+      #Link function for site/spp.-cov influence on survival of spp. k at site i
+    }#k
+  }#i
+  
+  ##Recruitment (constant across years)
+  for(i in 1:nsites){
+    for(k in 1:nspecies){
+      for(t in 1:(nyears-1)){
+        tmp[i,k,t] <- N[i,k,t]*gamma[i,k]
+        R[i,k,t+1] ~ dpois(tmp[i,k,t]) #relative recruitment of spp. k at site i (constant across years)
+      }#t
+      log(gamma[i,k]) <- alpha.gamma[k] + beta.gamma[k] * cov.gamma[i]
+      #Link function for site/spp.-cov influence on relative recruitment of spp. k at site i
+    }#k
+  }#i
+ 
+  ##Emigration (constant across years, conditional on survival)
+  for(i in 1:nsites){
+    for(k in 1:nspecies){
+      for(t in 1:(nyears-1)){
+        E[i,k,t+1] ~ dbin(kappa[i,k], S[i,k,t+1]) #emigration of spp. k from site i (constant across years)
+      }#t
+      logit(kappa[i,k]) <- alpha.kappa[k] + beta.kappa[k] * cov.kappa[i]
+      #Link function for site/spp.-cov influence on relative emigration of spp. k from site i
+    }#k
+  }#i
+  
+  ##Immigration (constant across years, conditional on survival and emigration)
+  for(i in 1:nsites){
+    for(k in 1:nspecies){
+      for(t in 1:(nyears-1)){
+        I[i,k,t+1] ~ dpois(Ilambda[i,k,t+1]) #immigration of spp. k into site i (constant across years)
+        Ilambda[i,k,t+1] <- sum(E[1:nsites,k,t+1]/nadj[1:nsites]*adj[1:nsites,i])
+      }#t
+    }#k
+  }#i
+  
+  ###Observation model (incl. covariate effects)
+  
+  ##Detection
+  for (i in 1:nsites){
+    for(k in 1:nspecies){
+      for (j in 1:nsurveys){
+        for (t in 1:nyears){
+          # Observed dataset as a function of abundance and detection
+          y[i,k,j,t] ~ dbin(p[i,k,j,t], N[i,k,t]) 
+          #Detection of sp. k at site i during replicate j and year t 
+          logit(p[i,k,j,t]) <- alpha.p[k] + beta.p[k] * cov.p[i,j,t] 
+          #Link function for site/spp./rep-cov influence on detection of spp. k at site i during rep. j and year t
+        }#t
+      }#j
+    }#k
+  }#i
+  
+  ########################
+  ###Derived Parameters###
+  ########################
+  
+  #???
+  
+  
+}#END OF MODEL CODE
