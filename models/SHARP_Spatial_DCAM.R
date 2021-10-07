@@ -1,7 +1,7 @@
 #######################################################################
 ###Spatial Dynamic Community Abundance Model - SHARP 10 Year PC Data###
 #######################################################################
-#Test commit for GitHub
+
 #################
 ###Description###
 #################
@@ -64,7 +64,19 @@ jags.data<-list(nsites = sim.data$nsites, nspecies = sim.data$nspecies, nsurveys
 ###Specify Model Code in JAGS###
 ################################
 
-cat(file = "SHARP_Spatial_NN_DCAM.txt", "
+#Two formulations: First, immigration/emigration can only occur between adjacent cells.
+#This greatly decreases computing power but might reduce realism of the model if some
+#species in focal community exhibit long distance juvenile or post-breeding dispersal
+#or low breeding site fidelity across years. 
+#Second formulation allows immigration/emigration to occur between any two cells in the
+#spatial matrix. This may increase realism of model for long-distance dispersers, but
+#greatly increases computing power requirements because immigration/emigration likelihoods
+#need to be calculated for every cell pair during every model iteration. If the 
+#focal community, number of cells, and/or number of years is large, the model is 
+#unlikely to converge in any 'reasonable' amount of time.
+
+#Nearest Neighbor (Formulation 1)
+cat(file = "SHARP_Spatial_NN_DCAM.txt", " 
 model {
   
   ##########################
@@ -256,8 +268,8 @@ model {
 }#END OF MODEL CODE
 ")
 
-
-cat(file = "SHARP_Spatial_DD_DCAM.txt", "
+#Distance Decay (Formulation 2)
+cat(file = "SHARP_Spatial_DD_DCAM.txt", " 
 model {
   
   ##########################
@@ -513,9 +525,9 @@ params<-c("mean.lambda", "mean.phi", "mean.gamma", "mean.kappa", "mean.theta", "
 ###################
 
 #Test run for syntax examination
-out<-jags(jags.data, inits, params, "SHARP_Spatial_DD_DCAM.txt",
-          n.chains = 3, n.adapt=500, n.burnin = 1000, 
-          n.iter =2000, n.thin =3, parallel=FALSE)
+#out<-jags(jags.data, inits, params, "SHARP_Spatial_DD_DCAM.txt",
+#          n.chains = 3, n.adapt=500, n.burnin = 1000, 
+#          n.iter =2000, n.thin =3, parallel=FALSE)
 
 #Full run (ART = 4.5 hrs)
 out<-jags(jags.data, inits, params, "SHARP_Spatial_DD_DCAM.txt",
