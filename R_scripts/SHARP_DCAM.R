@@ -48,7 +48,7 @@ source("homebrewed_simulation_functions.R") #Load simulation function (requires 
 #Simple, farily species-poor community for model testing. Observation-level parameters
 #specified for model testing. Default parameters employed for covariate relationships. 
 
-sim.data<-simDCAM(nspecies = 30, nsites = 20, nsurveys = 3, nyears = 10, 
+sim.data<-simDCAM(nspecies = 20, nsites = 100, nsurveys = 3, nyears = 10, 
                   mean.lambda = 3, mean.phi = 0.7, mean.gamma = 0.4, mean.p = 0.5)
 
 jags.data<-list(nsites = sim.data$nsites, nspecies = sim.data$nspecies, nsurveys = sim.data$nsurveys,
@@ -227,15 +227,17 @@ inits <- function() list(R=Rst, N=Nst)
 ####Parameters to Save###
 #########################
 
+#List of saved parameters informs accuracy of base model (not covariate effects)
+#Can modify if desired
+
 params<-c("mean.lambda", "mean.phi", "mean.gamma", "mean.p", "mu.alpha.lambda",
-           "mu.beta.lambda", "mu.beta.phi", "mu.beta.gamma", "mu.beta.p", 
           "sd.alpha.lambda", "sd.alpha.phi", "sd.alpha.gamma", "sd.alpha.p", "N")
 
 ###################
 ###Running Model###
 ###################
 
-#Test run for syntax examination
+#Approximate run time:
 out<-jags(jags.data, inits, params, "SHARP_DCAM.txt",
           n.chains = 3, n.adapt=3000, n.burnin = 20000, 
           n.iter =50000, n.thin =3, parallel=TRUE)
