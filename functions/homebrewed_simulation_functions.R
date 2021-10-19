@@ -609,11 +609,11 @@ str(return(list(nspec=nspecies, nsites=nsites, nrep=nreps, nD=nD, midpt=midpt, d
 ########################################################################
 
 simDCAM<-function (nsites = 20, nsurveys = 3, nspecies = 30, nyears = 3,
-                   mean.lambda = 4, sd.lambda = 1, mu.beta.lambda = 1, 
+                   mean.lambda = 4, sd.lambda = 1, mu.beta.lambda = 0, 
                    sd.beta.lambda = 0.5, mean.phi = 0.7, sd.phi = 0.3,
-                   mu.beta.phi = 0.3, sd.beta.phi = 0.5, mean.gamma = 0.4, sd.gamma = 0.3,
-                   mu.beta.gamma = 0.3, sd.beta.gamma = 0.5, mean.p = 0.5, sd.p = 0.2,
-                   mu.beta.p = -0.4, sd.beta.p = 0.5, show.plot = TRUE){
+                   mu.beta.phi = 0, sd.beta.phi = 0.5, mean.gamma = 0.4, sd.gamma = 0.3,
+                   mu.beta.gamma = 0, sd.beta.gamma = 0.5, mean.p = 0.5, sd.p = 0.2,
+                   mu.beta.p = 0, sd.beta.p = 0.5, show.plot = TRUE){
   
   spec <- 1:nspecies
   site <- 1:nsites
