@@ -36,6 +36,7 @@
 
 library(AHMbook)
 library(jagsUI)
+library(ggplot2)  
 setwd(choose.dir()) #because lazy 
 getwd() #where it's at
 source("homebrewed_simulation_functions.R") #Load simulation function (requires AHMbook)
@@ -48,7 +49,7 @@ source("homebrewed_simulation_functions.R") #Load simulation function (requires 
 #Simple, farily species-poor community for model testing. Observation-level parameters
 #specified for model testing. Default parameters employed for covariate relationships. 
 
-sim.data<-simDCAM(nspecies = 20, nsites = 100, nsurveys = 3, nyears = 10, 
+sim.data<-simDCAM(nspecies = 20, nsites = 30, nsurveys = 3, nyears = 10, 
                   mean.lambda = 3, mean.phi = 0.7, mean.gamma = 0.4, mean.p = 0.5)
 
 jags.data<-list(nsites = sim.data$nsites, nspecies = sim.data$nspecies, nsurveys = sim.data$nsurveys,
@@ -237,7 +238,7 @@ params<-c("mean.lambda", "mean.phi", "mean.gamma", "mean.p", "mu.alpha.lambda",
 ###Running Model###
 ###################
 
-#Approximate run time:
+#Approximate run time: 220 min
 out<-jags(jags.data, inits, params, "SHARP_DCAM.txt",
           n.chains = 3, n.adapt=3000, n.burnin = 20000, 
           n.iter =50000, n.thin =3, parallel=TRUE)
@@ -274,4 +275,41 @@ for(k in 1:jags.data$nspecies){
 }
 ((r.e-r.t)/r.t)*100 #Growth rate accuracy
 
+###Simple plots to observe results###
+
+#Abundance Accuracy
+ggplot(data = data.frame(x = c(0, 8)), aes(x)) + #change limits as needed
+  stat_function(fun = dnorm, n = 101, args = list(mean = sim.data$mean.lambda, sd = sim.data$sd.lambda), aes(color = "black")) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = out$mean$mean.lambda, sd = out$mean$sd.alpha.lambda), aes(color = "orange")) +
+  labs(x = "Abundance Hyperprior Distribution", y = "Density") +
+  theme_classic() +
+  scale_color_manual(name = NULL, 
+                     values =c('black'='black','orange'='orange'), labels = c('True','Estimated'), guide = 'legend')
+
+#Survival Accuracy
+ggplot(data = data.frame(x = c(-1, 2)), aes(x)) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = sim.data$mean.phi, sd = sim.data$sd.phi), aes(color = "black")) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = out$mean$mean.phi, sd = out$mean$sd.alpha.phi), aes(color = "orange")) +
+  labs(x = "Survival Hyperprior Distribution", y = "Density") +
+  theme_classic() +
+  scale_color_manual(name = NULL, 
+                     values =c('black'='black','orange'='orange'), labels = c('True','Estimated'), guide = 'legend')
+
+#Recruitment Accuracy
+ggplot(data = data.frame(x = c(-1, 2)), aes(x)) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = sim.data$mean.gamma, sd = sim.data$sd.gamma), aes(color = "black")) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = out$mean$mean.gamma, sd = out$mean$sd.alpha.gamma), aes(color = "orange")) +
+  labs(x = "Recruitment Hyperprior Distribution", y = "Density") +
+  theme_classic() +
+  scale_color_manual(name = NULL, 
+                     values =c('black'='black','orange'='orange'), labels = c('True','Estimated'), guide = 'legend')
+
+#Detection Accuracy
+ggplot(data = data.frame(x = c(-1, 2)), aes(x)) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = sim.data$mean.p, sd = sim.data$sd.p), aes(color = "black")) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = out$mean$mean.p, sd = out$mean$sd.alpha.p), aes(color = "orange")) +
+  labs(x = "Detection Hyperprior Distribution", y = "Density") +
+  theme_classic() +
+  scale_color_manual(name = NULL, 
+                     values =c('black'='black','orange'='orange'), labels = c('True','Estimated'), guide = 'legend')
 #END
