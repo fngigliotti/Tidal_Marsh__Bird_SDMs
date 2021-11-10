@@ -5,6 +5,8 @@
 #Franco Gigliotti 
 #04/08/2021
 
+#Most Recent Update: 11/10/21
+
 #################
 ###Description###
 #################
@@ -47,7 +49,7 @@ simSpatialCAM<-function (nspecies = 50, nsites = 50, nsurveys = 3, mean.lambda =
   #theta.RF: Parameter governing correlation in Gaussian random field; large theta = high correlation
   #show.plots: Logical argument for whether or not to show generated spatial variance plots
   #reproducible: Logical argument for whether or not to make generated dataset reproducible           
- 
+  
   total.sites <- grid.size*grid.size #Total area that could be sampled
   seed<-ifelse(repoducible==FALSE, NA, 42) #Reproducible spatial field?
   s <- simExpCorrRF(variance = variance.RF, theta = theta.RF, size = grid.size,
@@ -85,7 +87,7 @@ simSpatialCAM<-function (nspecies = 50, nsites = 50, nsurveys = 3, mean.lambda =
   alpha1 <- rnorm(nspecies, mu.beta.lp, sig.beta.lp) #Intercepts for spp. specific detection covariate
   x.coord <- rep(1:grid.size, each = grid.size) #generate x.coords for grid
   y.coord <- rep(1:grid.size, times = grid.size) #generate y coords for grid
-    
+  
   #Simulating data from simulated parameters
   for (k in 1:nspecies) {
     lambda[, k] <- exp(beta0[k] + beta1[k] * site.cov + c(s$field)) #species x site abundance
@@ -368,238 +370,238 @@ simNmixTR <- function(nsites = 100, nsurveys = 3, nwin = 5, mean.lambda = 5,
 #################################################################################
 
 simCAMDSTD<-function (nspecies = 50, nsites = 50, nreps = 3, mu.lambda = 2, 
-                         sig.loglam = 0.5, mu.beta.loglam = 0.3, sig.beta.loglam = 0.5, 
-                         mu.p = 0.4, sig.lp = 0.25, mu.beta.lp = -0.3, sig.beta.lp = 0.5, 
-                         mu.avail = 0.8, sig.lavail = 0.8, mu.beta.lavail = -0.3, 
-                         sig.beta.lavail = 0.5, mu.pres = 0.7, sig.lpres = 0.8,
-                         nSubSamp = 5, B = 100, delta = 10, omega = 0.75,
-                         repoducible = FALSE){
-
-seed<-ifelse(repoducible==FALSE, NA, 42) #Reproducible data generation?
-
-if(is.na(seed)==FALSE){
-  set.seed(seed)
-}else{
+                      sig.loglam = 0.5, mu.beta.loglam = 0.3, sig.beta.loglam = 0.5, 
+                      mu.p = 0.4, sig.lp = 0.25, mu.beta.lp = -0.3, sig.beta.lp = 0.5, 
+                      mu.avail = 0.8, sig.lavail = 0.8, mu.beta.lavail = -0.3, 
+                      sig.beta.lavail = 0.5, mu.pres = 0.7, sig.lpres = 0.8,
+                      nSubSamp = 5, B = 100, delta = 10, omega = 0.75,
+                      repoducible = FALSE){
   
-}
-
-###Function Arguments###
-
-#nspecies: metacommunity species richness 
-#nsites: number of sites
-#nsurveys: number of repeated surveys
-
-#mu.lambda: Mean site abundance of all species
-#sig.loglam: Standard deviation among species specific mean abundances (given on log scale)
-#mu.beta.loglam: Mean of coefficient value for abundance covariate across species (given on log scale)
-#sig.beta.loglam: Standard deviation in coefficient values for abundance covariate across species (given on log scale)
-#mu.p: Mean detection probability of all species
-#sig.lp: Standard deviation among species specific detection probabilities (given on log scale)
-#mu.beta.lp: Mean of coefficient value for detection covariate across species (given on log scale)
-#sig.beta.lp: Standard deviation in coefficient values for detection covariate across species (given on log scale)
-#mu.avail: Mean availability probability of all species 
-#sig.lavail: Standard deviation among species specific availability probabilities (given on logit scale)
-#mu.beta.lavail: Mean of coefficient value for availability covariate across species (given on logit scale)
-#sig.beta.lavail: Standard deviation in coefficient values for availability covariate across species (given on logit scale)
-#mu.pres: Mean presence probability of all species 
-#sig.lpres: Standard deviation among species specific presence probabilities (given on logit scale)
-
-#nSubSamp: time-of-detection sub-intervals per occasion
-#B: maximum distance for distance sampling
-#delta: width of distance sampling bins
-#omega: likelihood of species presence in metacommunity 
-
-detected.at.all <- rep(NA, nspecies)
-habitat <- sort(rnorm(nsites))
-wind <- matrix(rnorm(nsites * nreps), ncol = nreps)
-time <- matrix(rnorm(nsites * nreps), ncol = nreps)
-mu.loglam <- log(mu.lambda)
-
-###Calculating mu.lp with given mu.p value
-sigmas<-rep(NA,200)
-for(i in 1:200){
-  sigma<-i
-  sigma.1<-integrate(function(d){(2/B^2)*d*exp((-d*d)/(2*sigma^2))},lower = 0,upper = B)
-  sigmas[i]<-sigma.1$value
-}
-mu.lp <- log(which(abs(sigmas-mu.p)==min(abs(sigmas-mu.p))))
-###
-
-mu.lavail <- ifelse(mu.avail == "1", 500, qlogis(mu.avail))
-mu.lpres <- ifelse(mu.pres == "1", 500, qlogis(mu.pres))
-rho0 <- rnorm(nspecies, mu.lpres, sig.lpres)
-beta0 <- rnorm(nspecies, mu.loglam, sig.loglam)
-beta1 <- rnorm(nspecies, mu.beta.loglam, sig.beta.loglam)
-alpha0 <- rnorm(nspecies, mu.lp, sig.lp)
-alpha1 <- rnorm(nspecies, mu.beta.lp, sig.beta.lp)
-gamma0 <- rnorm(nspecies, mu.lavail, sig.lavail)
-gamma1 <- rnorm(nspecies, mu.beta.lavail, sig.beta.lavail)
-
-w<-pPres<-sigma<-rep(NA,nspecies) #create vectors of length nspecies
-lambda<-array(NA, dim = c(nspecies,nsites))     #lambda array for species x site 
-pAvail<-pAvailPrime<-array(NA, dim = c(nspecies,nsites,nreps)) #availability arrays for species x site x survey
-for(k in 1:nspecies){                           #Parameters for each species (species heterogeneity)
-  w[k] <- rbinom(1,1,omega)                     #Presence/absence of each species in metacommunity 
-  pPres[k] <- plogis(rho0[k])                   #Species-specific probability of presence within sampled area
-  #sigma[k] <- runif(1,20,150)                   #scale parameter for half-normal distance sampling (THIS IS WHERE COVARIATES CAN ENTER!)
-  for(i in 1:nsites){
-    lambda[k,i] <- exp(beta0[k] + beta1[k] * habitat[i])      #heterogeneity in supercommunity abundances across species
-    for(j in 1:nreps){
-      pAvail[k,i,j] <- plogis(gamma0[k] + gamma1[k] * time[i,j]) #probability of ever being available|present 
-      pAvailPrime[k,i,j] <- 1-(1-pAvail[k,i,j])^(1/nSubSamp)     #probability of availability in a subinterval
+  seed<-ifelse(repoducible==FALSE, NA, 42) #Reproducible data generation?
+  
+  if(is.na(seed)==FALSE){
+    set.seed(seed)
+  }else{
+    
+  }
+  
+  ###Function Arguments###
+  
+  #nspecies: metacommunity species richness 
+  #nsites: number of sites
+  #nsurveys: number of repeated surveys
+  
+  #mu.lambda: Mean site abundance of all species
+  #sig.loglam: Standard deviation among species specific mean abundances (given on log scale)
+  #mu.beta.loglam: Mean of coefficient value for abundance covariate across species (given on log scale)
+  #sig.beta.loglam: Standard deviation in coefficient values for abundance covariate across species (given on log scale)
+  #mu.p: Mean detection probability of all species
+  #sig.lp: Standard deviation among species specific detection probabilities (given on log scale)
+  #mu.beta.lp: Mean of coefficient value for detection covariate across species (given on log scale)
+  #sig.beta.lp: Standard deviation in coefficient values for detection covariate across species (given on log scale)
+  #mu.avail: Mean availability probability of all species 
+  #sig.lavail: Standard deviation among species specific availability probabilities (given on logit scale)
+  #mu.beta.lavail: Mean of coefficient value for availability covariate across species (given on logit scale)
+  #sig.beta.lavail: Standard deviation in coefficient values for availability covariate across species (given on logit scale)
+  #mu.pres: Mean presence probability of all species 
+  #sig.lpres: Standard deviation among species specific presence probabilities (given on logit scale)
+  
+  #nSubSamp: time-of-detection sub-intervals per occasion
+  #B: maximum distance for distance sampling
+  #delta: width of distance sampling bins
+  #omega: likelihood of species presence in metacommunity 
+  
+  detected.at.all <- rep(NA, nspecies)
+  habitat <- sort(rnorm(nsites))
+  wind <- matrix(rnorm(nsites * nreps), ncol = nreps)
+  time <- matrix(rnorm(nsites * nreps), ncol = nreps)
+  mu.loglam <- log(mu.lambda)
+  
+  ###Calculating mu.lp with given mu.p value
+  sigmas<-rep(NA,200)
+  for(i in 1:200){
+    sigma<-i
+    sigma.1<-integrate(function(d){(2/B^2)*d*exp((-d*d)/(2*sigma^2))},lower = 0,upper = B)
+    sigmas[i]<-sigma.1$value
+  }
+  mu.lp <- log(which(abs(sigmas-mu.p)==min(abs(sigmas-mu.p))))
+  ###
+  
+  mu.lavail <- ifelse(mu.avail == "1", 500, qlogis(mu.avail))
+  mu.lpres <- ifelse(mu.pres == "1", 500, qlogis(mu.pres))
+  rho0 <- rnorm(nspecies, mu.lpres, sig.lpres)
+  beta0 <- rnorm(nspecies, mu.loglam, sig.loglam)
+  beta1 <- rnorm(nspecies, mu.beta.loglam, sig.beta.loglam)
+  alpha0 <- rnorm(nspecies, mu.lp, sig.lp)
+  alpha1 <- rnorm(nspecies, mu.beta.lp, sig.beta.lp)
+  gamma0 <- rnorm(nspecies, mu.lavail, sig.lavail)
+  gamma1 <- rnorm(nspecies, mu.beta.lavail, sig.beta.lavail)
+  
+  w<-pPres<-sigma<-rep(NA,nspecies) #create vectors of length nspecies
+  lambda<-array(NA, dim = c(nspecies,nsites))     #lambda array for species x site 
+  pAvail<-pAvailPrime<-array(NA, dim = c(nspecies,nsites,nreps)) #availability arrays for species x site x survey
+  for(k in 1:nspecies){                           #Parameters for each species (species heterogeneity)
+    w[k] <- rbinom(1,1,omega)                     #Presence/absence of each species in metacommunity 
+    pPres[k] <- plogis(rho0[k])                   #Species-specific probability of presence within sampled area
+    #sigma[k] <- runif(1,20,150)                   #scale parameter for half-normal distance sampling (THIS IS WHERE COVARIATES CAN ENTER!)
+    for(i in 1:nsites){
+      lambda[k,i] <- exp(beta0[k] + beta1[k] * habitat[i])      #heterogeneity in supercommunity abundances across species
+      for(j in 1:nreps){
+        pAvail[k,i,j] <- plogis(gamma0[k] + gamma1[k] * time[i,j]) #probability of ever being available|present 
+        pAvailPrime[k,i,j] <- 1-(1-pAvail[k,i,j])^(1/nSubSamp)     #probability of availability in a subinterval
+      }
     }
   }
-}
-
-##Distance sampling values
-db = seq(0,B, by=delta)                   #dist bin breaks
-midpt = seq(.5*delta,B, by=delta)         #midpoints for distance bins
-nD = length(db)-1                         #number of distance bins
-pix = (2*midpt*delta )/(B*B)              #relative area of each bin
-Area = (pi*B*B)/10000                     #area of a single plot in ha
-totArea = Area*nsites                     #total area surveyed
-sites = 1:nsites                          #site labels
-
-#placeholders
-dims<-c(nspecies,nsites,nreps)
-Npres<-Npres.true<-sigmaObs<-array(data=NA, dim = dims)
-sigma.vec<-obsP<-M.p<-nind<-rep(NA,nspecies)	
-M.super<-array(data = NA, dim = c(nspecies,nsites))
-PresSite<-surveyPres<-u1Pres<-u2Pres<-dPres<-pInd<-obs<-obsSite<-caphist.tmp<-dObs<-u1Obs<-u2Obs<-dClass<-survey<-counts<-as.list(rep(NA,nspecies))
-
-##Number of Individuals of species k present at site i during survey j
-
-for (k in 1:nspecies){
-  for (i in 1:nsites){
-    M.super[k,i]<- rpois(1, lambda[k,i]*w[k]) #latent abundance of each species at each site
-    for (j in 1:nreps){ #Yes necessary
-      Npres[k,i,j]<-rbinom(1, M.super[k,i], pPres[k]) #number of present individuals of each species x site x rep
-    }#j
-  }#i
-}#k
-
-
-##assign location of individuals of each species present at each site during each survey
-angle<-r2<-r<-u1<-u2<-d<-r<-y<-p<-array(NA, c(max(Npres),nspecies,nsites,nreps)) #placeholders
-for (k in 1:nspecies){
-  for (i in 1:nsites){
-    for (j in 1:nreps){
-      angle[,k,i,j] <- c(runif(Npres[k,i,j], 0, 2*pi), rep(NA, max(Npres)-Npres[k,i,j]))
-      r2[,k,i,j] <- c(runif(Npres[k,i,j], 0, 1), rep(NA, max(Npres)-Npres[k,i,j]))
-      r[,k,i,j] <- B * sqrt(r2[,k,i,j])
-      u1[,k,i,j] <- r[,k,i,j] * cos(angle[,k,i,j]) + B
-      u2[,k,i,j] <- r[,k,i,j] * sin(angle[,k,i,j]) + B
-      d[,k,i,j] <- sqrt((u1[,k,i,j] - B)^2 + (u2[,k,i,j] - B)^2)
-      Npres.true[k,i,j] <- sum(d[,k,i,j] <= B, na.rm=T)
-      sigmaObs[k,i,j] <- exp(alpha0[k] + alpha1[k]*wind[i,j])	
-      p[,k,i,j] <- ifelse(d[,k,i,j] < (B), 1, 0) * exp(-d[,k,i,j] * d[,k,i,j]/(2 * (sigmaObs[k,i,j]^2))) 
-    }#j 
-  }#i
-}#k
-
-
-NpresTot<-apply(Npres.true,c(1,3),sum)      #total number of individuals of each species present during each survey
-NpresAll<-apply(NpresTot,1,sum)             #NpresAll[k] should = length(pInd[k])
-
-for (k in 1:nspecies){
-  PresSite[[k]]<- as.vector(unlist(apply(Npres.true[k,,],2, function(x) rep(1:nsites, x)))) #site of present individuals
-  surveyPres[[k]]<-rep(1:nreps, NpresTot[k,])                            #Survey of present individual
-  u1Pres[[k]]<-as.vector(u2[,k,,])[(as.vector(!is.na(u2[,k,,])))]       #x coordinates of present individuals
-  u2Pres[[k]]<-as.vector(u2[,k,,])[(as.vector(!is.na(u2[,k,,])))]       #y coordinates of present individuals 
-  dPres[[k]]<-as.vector(d[,k,,])[(as.vector(!is.na(d[,k,,])))]          #distance of present individuals
-  pInd[[k]]<-as.vector(p[,k,,])[(as.vector(!is.na(p[,k,,])))]           #detection probability of each individual of each species given distance 
-}#k
-
-
-##Availablity if Present (CMR data)
-Avail<-newpMat<-array(NA, c(nspecies, max(NpresAll), nSubSamp))  #sub-interval (minute) availability
-
-##create true availability histories
-for(k in 1:nspecies){
-  if(NpresAll[k]==0){
-    for(n in 1:max(NpresAll)){
-      Avail[k,n,]<-rep(NA,nSubSamp)
-    }#n
-  }else{
-    for(n in 1:NpresAll[k]){
-      Avail[k,n,]<-rbinom(nSubSamp,1,pAvailPrime[k,PresSite[[k]][n],surveyPres[[k]][n]]) #available or not (1/0) during a sub-interval
-    }#n
-  }
-}#k
-
-IndAvail <- apply(Avail,c(1,2),max)            #available (y/n)
-IndAvail<-ifelse(is.na(IndAvail),0,IndAvail)   #replacing NAs with 0s
-NavailTot<-array(NA, c(nspecies, nreps))
-
-for(k in 1:nspecies){
-  if(sum(IndAvail[k,])>0){
-    NavailTot[k,]<- tabulate(surveyPres[[k]][which(IndAvail[k,]==1)], nreps) #Total available individuals per survey 
-  }else{
-    NavailTot[k,]<-0
-  } 
-}#k
-
-##Detection if available
-newp<-y<-matrix(NA, nrow = nrow(IndAvail), ncol = ncol(IndAvail))
-for(k in 1:nspecies){
-  pInd[[k]]<-append(pInd[[k]], rep(0, ncol(IndAvail) - length(pInd[[k]])))  #Make dims equal
-  newp[k,] <- pInd[[k]]*IndAvail[k,]   #new detection probability if individual is available
-  y[k,]<-rbinom(IndAvail[k,], 1, newp[k,])                                     #observed y/n
-  obs[[k]]<-which(y[k,]>0)                                             #observed individuals
-  nind[k]<-length(obs[[k]])                                           #number of individuals observed per species
-  caphist.tmp[[k]]<-as.array(Avail[k,obs[[k]],], nrow = length(obs[[k]])) #capture history for observed individuals
-  obsSite[[k]]<-PresSite[[k]][obs[[k]]]                                    #observation site (vector of site numbers)
-  u1Obs[[k]] <- as.vector(u1[,k,,])[(as.vector(!is.na(u1[,k,,])))][obs[[k]]]   #x coord of observed individuals 
-  u2Obs[[k]] <- as.vector(u2[,k,,])[(as.vector(!is.na(u2[,k,,])))][obs[[k]]]   #y coord of observed individuals 
-  dObs[[k]] <- as.vector(d[,k,,])[(as.vector(!is.na(d[,k,,])))][obs[[k]]]      #distance of observed individuals
-  dClass[[k]] <- c(dObs[[k]]%/%delta + 1)                                      #distance bin	
-  survey[[k]] <- surveyPres[[k]][obs[[k]]]                                     #survey (vector of survey numbers)
-}#k 
-
-#5-d capture history of species x site x rep x individual x time interval
-caphist<-array(NA, c(nspecies, nsites, nreps, max(unlist(lapply(caphist.tmp, function(x) nrow(x)))), nSubSamp)) #making caphist a 5d array
-for(k in 1:nspecies){
-  for(i in 1:length(obsSite[[k]])){
-    if(sum(caphist.tmp[[k]])>0 && length(dim(caphist.tmp[[k]]))>1){
-      caphist[k,obsSite[[k]][i],survey[[k]][i],i,1:nSubSamp]<-caphist.tmp[[k]][i,]
-    }else if(sum(caphist.tmp[[k]])>0){
-      caphist[k,obsSite[[k]][i],survey[[k]][i],i,1:nSubSamp]<-caphist.tmp[[k]]
+  
+  ##Distance sampling values
+  db = seq(0,B, by=delta)                   #dist bin breaks
+  midpt = seq(.5*delta,B, by=delta)         #midpoints for distance bins
+  nD = length(db)-1                         #number of distance bins
+  pix = (2*midpt*delta )/(B*B)              #relative area of each bin
+  Area = (pi*B*B)/10000                     #area of a single plot in ha
+  totArea = Area*nsites                     #total area surveyed
+  sites = 1:nsites                          #site labels
+  
+  #placeholders
+  dims<-c(nspecies,nsites,nreps)
+  Npres<-Npres.true<-sigmaObs<-array(data=NA, dim = dims)
+  sigma.vec<-obsP<-M.p<-nind<-rep(NA,nspecies)	
+  M.super<-array(data = NA, dim = c(nspecies,nsites))
+  PresSite<-surveyPres<-u1Pres<-u2Pres<-dPres<-pInd<-obs<-obsSite<-caphist.tmp<-dObs<-u1Obs<-u2Obs<-dClass<-survey<-counts<-as.list(rep(NA,nspecies))
+  
+  ##Number of Individuals of species k present at site i during survey j
+  
+  for (k in 1:nspecies){
+    for (i in 1:nsites){
+      M.super[k,i]<- rpois(1, lambda[k,i]*w[k]) #latent abundance of each species at each site
+      for (j in 1:nreps){ #Yes necessary
+        Npres[k,i,j]<-rbinom(1, M.super[k,i], pPres[k]) #number of present individuals of each species x site x rep
+      }#j
+    }#i
+  }#k
+  
+  
+  ##assign location of individuals of each species present at each site during each survey
+  angle<-r2<-r<-u1<-u2<-d<-r<-y<-p<-array(NA, c(max(Npres),nspecies,nsites,nreps)) #placeholders
+  for (k in 1:nspecies){
+    for (i in 1:nsites){
+      for (j in 1:nreps){
+        angle[,k,i,j] <- c(runif(Npres[k,i,j], 0, 2*pi), rep(NA, max(Npres)-Npres[k,i,j]))
+        r2[,k,i,j] <- c(runif(Npres[k,i,j], 0, 1), rep(NA, max(Npres)-Npres[k,i,j]))
+        r[,k,i,j] <- B * sqrt(r2[,k,i,j])
+        u1[,k,i,j] <- r[,k,i,j] * cos(angle[,k,i,j]) + B
+        u2[,k,i,j] <- r[,k,i,j] * sin(angle[,k,i,j]) + B
+        d[,k,i,j] <- sqrt((u1[,k,i,j] - B)^2 + (u2[,k,i,j] - B)^2)
+        Npres.true[k,i,j] <- sum(d[,k,i,j] <= B, na.rm=T)
+        sigmaObs[k,i,j] <- exp(alpha0[k] + alpha1[k]*wind[i,j])	
+        p[,k,i,j] <- ifelse(d[,k,i,j] < (B), 1, 0) * exp(-d[,k,i,j] * d[,k,i,j]/(2 * (sigmaObs[k,i,j]^2))) 
+      }#j 
+    }#i
+  }#k
+  
+  
+  NpresTot<-apply(Npres.true,c(1,3),sum)      #total number of individuals of each species present during each survey
+  NpresAll<-apply(NpresTot,1,sum)             #NpresAll[k] should = length(pInd[k])
+  
+  for (k in 1:nspecies){
+    PresSite[[k]]<- as.vector(unlist(apply(Npres.true[k,,],2, function(x) rep(1:nsites, x)))) #site of present individuals
+    surveyPres[[k]]<-rep(1:nreps, NpresTot[k,])                            #Survey of present individual
+    u1Pres[[k]]<-as.vector(u2[,k,,])[(as.vector(!is.na(u2[,k,,])))]       #x coordinates of present individuals
+    u2Pres[[k]]<-as.vector(u2[,k,,])[(as.vector(!is.na(u2[,k,,])))]       #y coordinates of present individuals 
+    dPres[[k]]<-as.vector(d[,k,,])[(as.vector(!is.na(d[,k,,])))]          #distance of present individuals
+    pInd[[k]]<-as.vector(p[,k,,])[(as.vector(!is.na(p[,k,,])))]           #detection probability of each individual of each species given distance 
+  }#k
+  
+  
+  ##Availablity if Present (CMR data)
+  Avail<-newpMat<-array(NA, c(nspecies, max(NpresAll), nSubSamp))  #sub-interval (minute) availability
+  
+  ##create true availability histories
+  for(k in 1:nspecies){
+    if(NpresAll[k]==0){
+      for(n in 1:max(NpresAll)){
+        Avail[k,n,]<-rep(NA,nSubSamp)
+      }#n
     }else{
-      caphist[k,,,,]<-NA
+      for(n in 1:NpresAll[k]){
+        Avail[k,n,]<-rbinom(nSubSamp,1,pAvailPrime[k,PresSite[[k]][n],surveyPres[[k]][n]]) #available or not (1/0) during a sub-interval
+      }#n
     }
-  }#i
-}#k
-
-#4-d array of observations species x site x survey x distance bin 
-dClassN<-array(0,c(nspecies, nsites, nreps, nD)) 
-for(k in 1:nspecies){ #indexing by site, survey, distance bin
-  if(length(obsSite[[k]])>0){
-    counts[[k]]<- table(obsSite[[k]], dClass[[k]], survey[[k]])
-  }else{
-    counts[[k]]<-array(0,dim=c(1,nD,nreps))
-  } 
-}#k
-
-for(k in 1:nspecies){ #filling 4d array with counts 
-  for(i in 1:dim(counts[[k]])[3]){
-    dClassN[k,as.numeric(rownames(counts[[k]])),i,as.numeric(colnames(counts[[k]]))]<-counts[[k]][,,i]
-  }#j 
-}#k
-
-nObs <- apply(dClassN, c(1,2,3), sum) #observations per species, site, and survey
-nobsSurvey<-apply(nObs,c(1,3),sum)    #observations per species per survey
-numObs<-length(which(nind!=0))        #Number of observed species 
-Ntot<-sum(w[])                        #Latent species richness
-Mtot<-rep(NA,nspecies)
-for(k in 1:nspecies){
-  Mtot[k]<-sum(M.super[k,])           #Latent abundances of each species
-}
-
-##Store and check data for JAGS
-str(return(list(nspec=nspecies, nsites=nsites, nrep=nreps, nD=nD, midpt=midpt, delta=delta, B=B, nObs= nObs,
+  }#k
+  
+  IndAvail <- apply(Avail,c(1,2),max)            #available (y/n)
+  IndAvail<-ifelse(is.na(IndAvail),0,IndAvail)   #replacing NAs with 0s
+  NavailTot<-array(NA, c(nspecies, nreps))
+  
+  for(k in 1:nspecies){
+    if(sum(IndAvail[k,])>0){
+      NavailTot[k,]<- tabulate(surveyPres[[k]][which(IndAvail[k,]==1)], nreps) #Total available individuals per survey 
+    }else{
+      NavailTot[k,]<-0
+    } 
+  }#k
+  
+  ##Detection if available
+  newp<-y<-matrix(NA, nrow = nrow(IndAvail), ncol = ncol(IndAvail))
+  for(k in 1:nspecies){
+    pInd[[k]]<-append(pInd[[k]], rep(0, ncol(IndAvail) - length(pInd[[k]])))  #Make dims equal
+    newp[k,] <- pInd[[k]]*IndAvail[k,]   #new detection probability if individual is available
+    y[k,]<-rbinom(IndAvail[k,], 1, newp[k,])                                     #observed y/n
+    obs[[k]]<-which(y[k,]>0)                                             #observed individuals
+    nind[k]<-length(obs[[k]])                                           #number of individuals observed per species
+    caphist.tmp[[k]]<-as.array(Avail[k,obs[[k]],], nrow = length(obs[[k]])) #capture history for observed individuals
+    obsSite[[k]]<-PresSite[[k]][obs[[k]]]                                    #observation site (vector of site numbers)
+    u1Obs[[k]] <- as.vector(u1[,k,,])[(as.vector(!is.na(u1[,k,,])))][obs[[k]]]   #x coord of observed individuals 
+    u2Obs[[k]] <- as.vector(u2[,k,,])[(as.vector(!is.na(u2[,k,,])))][obs[[k]]]   #y coord of observed individuals 
+    dObs[[k]] <- as.vector(d[,k,,])[(as.vector(!is.na(d[,k,,])))][obs[[k]]]      #distance of observed individuals
+    dClass[[k]] <- c(dObs[[k]]%/%delta + 1)                                      #distance bin	
+    survey[[k]] <- surveyPres[[k]][obs[[k]]]                                     #survey (vector of survey numbers)
+  }#k 
+  
+  #5-d capture history of species x site x rep x individual x time interval
+  caphist<-array(NA, c(nspecies, nsites, nreps, max(unlist(lapply(caphist.tmp, function(x) nrow(x)))), nSubSamp)) #making caphist a 5d array
+  for(k in 1:nspecies){
+    for(i in 1:length(obsSite[[k]])){
+      if(sum(caphist.tmp[[k]])>0 && length(dim(caphist.tmp[[k]]))>1){
+        caphist[k,obsSite[[k]][i],survey[[k]][i],i,1:nSubSamp]<-caphist.tmp[[k]][i,]
+      }else if(sum(caphist.tmp[[k]])>0){
+        caphist[k,obsSite[[k]][i],survey[[k]][i],i,1:nSubSamp]<-caphist.tmp[[k]]
+      }else{
+        caphist[k,,,,]<-NA
+      }
+    }#i
+  }#k
+  
+  #4-d array of observations species x site x survey x distance bin 
+  dClassN<-array(0,c(nspecies, nsites, nreps, nD)) 
+  for(k in 1:nspecies){ #indexing by site, survey, distance bin
+    if(length(obsSite[[k]])>0){
+      counts[[k]]<- table(obsSite[[k]], dClass[[k]], survey[[k]])
+    }else{
+      counts[[k]]<-array(0,dim=c(1,nD,nreps))
+    } 
+  }#k
+  
+  for(k in 1:nspecies){ #filling 4d array with counts 
+    for(i in 1:dim(counts[[k]])[3]){
+      dClassN[k,as.numeric(rownames(counts[[k]])),i,as.numeric(colnames(counts[[k]]))]<-counts[[k]][,,i]
+    }#j 
+  }#k
+  
+  nObs <- apply(dClassN, c(1,2,3), sum) #observations per species, site, and survey
+  nobsSurvey<-apply(nObs,c(1,3),sum)    #observations per species per survey
+  numObs<-length(which(nind!=0))        #Number of observed species 
+  Ntot<-sum(w[])                        #Latent species richness
+  Mtot<-rep(NA,nspecies)
+  for(k in 1:nspecies){
+    Mtot[k]<-sum(M.super[k,])           #Latent abundances of each species
+  }
+  
+  ##Store and check data for JAGS
+  str(return(list(nspec=nspecies, nsites=nsites, nrep=nreps, nD=nD, midpt=midpt, delta=delta, B=B, nObs= nObs,
                   nind=nind, numObs=numObs, nSubSamp=nSubSamp, dClassN=dClassN, caphist=caphist, totArea=totArea,
                   habitat=habitat, wind=wind, time=time, Mtot=Mtot, Ntot=Ntot, mu.lp=mu.lp)))
-
+  
 }#END of Function
 
 
@@ -620,18 +622,18 @@ simDCAM<-function (nsites = 20, nsurveys = 3, nspecies = 30, nyears = 3,
   year <- 1:nyears
   survey <- 1:nsurveys
   lambda <- phi <- gamma <- array(NA, dim = c(nsites, nspecies), 
-                            dimnames = list(paste("Site", site ,sep = ""),
-                            paste("Spec", spec ,sep ="")))
+                                  dimnames = list(paste("Site", site ,sep = ""),
+                                                  paste("Spec", spec ,sep ="")))
   
   N <- S <- R <- array(NA, dim = c(nsites, nspecies, nyears), 
-                 dimnames = list(paste("Site", site, sep = ""), 
-                 paste("Spec", spec, sep = ""), paste("Year", year, sep = "")))
+                       dimnames = list(paste("Site", site, sep = ""), 
+                                       paste("Spec", spec, sep = ""), paste("Year", year, sep = "")))
   
   y.all <- y.obs <- p <- array(NA, dim = c(nsites, nspecies, nsurveys, nyears),
                                dimnames = list(paste("Site", 
-                                          site, sep = ""), paste("Spec", spec, 
-                                          sep = ""), paste("Survey", survey, sep = ""),
-                                          paste("Year", year, sep = "")))
+                                                     site, sep = ""), paste("Spec", spec, 
+                                                                            sep = ""), paste("Survey", survey, sep = ""),
+                                               paste("Year", year, sep = "")))
   
   detected.at.all <- rep(NA, nspecies)
   habitat <- sort(rnorm(nsites))
@@ -686,7 +688,7 @@ simDCAM<-function (nsites = 20, nsurveys = 3, nspecies = 30, nyears = 3,
       }
     }
   }
- 
+  
   for (i in 1:nsites) {
     for (k in 1:nspecies) {
       for (j in 1:nsurveys) {
@@ -698,9 +700,9 @@ simDCAM<-function (nsites = 20, nsurveys = 3, nspecies = 30, nyears = 3,
   }
   
   for (k in 1:nspecies) {
-  detected.at.all[k] <- if (any(y.all[ , k, , ] > 0)) 
-    TRUE
-  else FALSE
+    detected.at.all[k] <- if (any(y.all[ , k, , ] > 0)) 
+      TRUE
+    else FALSE
   }
   
   y.obs <- y.all[ , detected.at.all, , ]
@@ -728,12 +730,12 @@ simDCAM<-function (nsites = 20, nsurveys = 3, nspecies = 30, nyears = 3,
 ################################################################################
 
 simSpDCAM<-function (nsites = 25, nsurveys = 3, nspecies = 30, nyears = 3,
-                   mean.lambda = 2, sd.lambda = 1, mu.beta.lambda = 0, 
-                   sd.beta.lambda = 0.5, mean.phi = 0.7, sd.phi = 0.3,
-                   mu.beta.phi = 0, sd.beta.phi = 0.5, mean.gamma = 0.3, sd.gamma = 0.3,
-                   mu.beta.gamma = 0, sd.beta.gamma = 0.5, mean.kappa = 0.4, sd.kappa = 0.3, 
-                   mu.beta.kappa = 0, sd.beta.kappa = 0.5, mean.theta = 1, sd.theta = 0.3,
-                   mean.p = 0.5, sd.p = 0.3, mu.beta.p = 0, sd.beta.p = 0.5){
+                     mean.lambda = 2, sd.lambda = 1, mu.beta.lambda = 0, 
+                     sd.beta.lambda = 0.5, mean.phi = 0.7, sd.phi = 0.3,
+                     mu.beta.phi = 0, sd.beta.phi = 0.5, mean.gamma = 0.3, sd.gamma = 0.3,
+                     mu.beta.gamma = 0, sd.beta.gamma = 0.5, mean.kappa = 0.4, sd.kappa = 0.3, 
+                     mu.beta.kappa = 0, sd.beta.kappa = 0.5, mean.theta = 1, sd.theta = 0.3,
+                     mean.p = 0.5, sd.p = 0.3, mu.beta.p = 0, sd.beta.p = 0.5){
   stopifnot(sqrt(nsites)%%1==0)
   spec <- 1:nspecies
   site <- 1:nsites
@@ -747,14 +749,14 @@ simSpDCAM<-function (nsites = 25, nsurveys = 3, nspecies = 30, nyears = 3,
                  dimnames = list(paste("Site", site ,sep = ""),
                                  paste("Site", site ,sep = ""),
                                  paste("Spec", spec ,sep ="")))
-    
+  
   lambda <- phi <- gamma <- kappa <- array(NA, dim = c(nsites, nspecies), 
-                                  dimnames = list(paste("Site", site ,sep = ""),
-                                                  paste("Spec", spec ,sep ="")))
+                                           dimnames = list(paste("Site", site ,sep = ""),
+                                                           paste("Spec", spec ,sep ="")))
   
   N <- S <- R <- E <- I <- array(NA, dim = c(nsites, nspecies, nyears), 
-                            dimnames = list(paste("Site", site, sep = ""), 
-                                       paste("Spec", spec, sep = ""), paste("Year", year, sep = "")))
+                                 dimnames = list(paste("Site", site, sep = ""), 
+                                                 paste("Spec", spec, sep = ""), paste("Year", year, sep = "")))
   M <- array(NA, dim = c(nsites, nsites, nspecies, nyears), 
              dimnames = list(paste("Site", site, sep = ""), paste("Site", site, sep = ""),  
                              paste("Spec", spec, sep = ""), paste("Year", year, sep = "")))
@@ -799,7 +801,7 @@ simSpDCAM<-function (nsites = 25, nsurveys = 3, nspecies = 30, nyears = 3,
   for (k in 1:nspecies) {
     kappa[, k] <- plogis(alpha.kappa[k] + beta.kappa[k] * habitat) #emigration probability
   }    
-    
+  
   mu.theta <- log(mean.theta)
   alpha.theta <- rnorm(nspecies, mu.theta, sd.theta)
   theta <- exp(alpha.theta)                                        #distance decay
@@ -878,4 +880,290 @@ simSpDCAM<-function (nsites = 25, nsurveys = 3, nspecies = 30, nyears = 3,
 #########
 
 
-##########################################################################
+###########################################################################################
+###Function #7: Simulate data for a dynamic community abundance model with stochasticity###
+###########################################################################################
+
+simStochDCAM<-function (nsites = 20, nsurveys = 3, nspecies = 10, nyears = 3,
+                        mean.lambda = 4, sd.lambda = 0.5, mean.phi = 0.7, sd.phi = 0.1,
+                        mu.beta.phi = -0.05, sd.beta.phi = 0.01, sd.eps.phi = 0.1,
+                        mean.gamma = 0.3, sd.gamma = 0.1, mu.beta.gamma = -0.05, sd.beta.gamma = 0.01,
+                        sd.eps.gamma = 0.1, mean.p = 0.7, sd.p = 0.2,
+                        sd.eps.p = 0.1, show.plot = TRUE){
+  #Dimension values
+  spec <- 1:nspecies
+  site <- 1:nsites
+  year <- 1:nyears
+  survey <- 1:nsurveys
+  
+  #Filling arrays for data
+  lambda <- rep(NA, nspecies)
+  names(lambda) <- paste("Spec", spec ,sep ="")
+  
+  
+  N <- S <- R <- phi <- gamma <- eps.phi <- eps.gamma <- eps.p <- array(NA, dim = c(nsites, nspecies, nyears), 
+                                                                        dimnames = list(paste("Site", site, sep = ""), 
+                                                                                        paste("Spec", spec, sep = ""), paste("Year", year, sep = "")))
+  
+  y.all <- y.obs <- p <- array(NA, dim = c(nsites, nspecies, nsurveys, nyears),
+                               dimnames = list(paste("Site", 
+                                                     site, sep = ""), paste("Spec", spec, 
+                                                                            sep = ""), paste("Survey", survey, sep = ""),
+                                               paste("Year", year, sep = "")))
+  
+  detected.at.all <- rep(NA, nspecies)
+  
+  
+  ##Generating parameters for link functions with specified hyperpriors 
+  #Abundance
+  mu.loglam <- log(mean.lambda)
+  alpha.lambda <- rnorm(nspecies, mu.loglam, sd.lambda) #Intercept
+  
+  #Apparent Survival
+  mu.lphi <- ifelse(mean.phi == "1", 500, qlogis(mean.phi))
+  alpha.phi <- rnorm(nspecies, mu.lphi, sd.phi) #Intercept
+  beta.phi <- rnorm(nspecies, mu.beta.phi, sd.beta.phi) #Dens. Dep.
+  for(i in 1:nsites){
+    for(t in 1:nyears){
+      eps.phi[i,,t] <- rnorm(nspecies, 0, sd.eps.phi) #Stoch
+    }
+  }
+  
+  #Recruitment
+  mu.loggam <- log(mean.gamma)
+  alpha.gamma <- rnorm(nspecies, mu.loggam, sd.gamma) #Intercept
+  beta.gamma <- rnorm(nspecies, mu.beta.gamma, sd.beta.gamma) #Dens. Dep.
+  for(i in 1:nsites){
+    for(t in 1:nyears){
+      eps.gamma[i,,t] <- rnorm(nspecies, 0, sd.eps.gamma) #Stoch
+    }
+  }
+  
+  #Detection
+  mu.lp <- ifelse(mean.p == "1", 500, qlogis(mean.p))
+  alpha.p <- rnorm(nspecies, mu.lp, sd.p) #Intercept
+  for(i in 1:nsites){
+    for(t in 1:nyears){
+      eps.p[i,,t] <- rnorm(nspecies, 0, sd.eps.p) #Stoch
+    }
+  }
+  
+  ##Generate focal parameters with link functions and fill true abundance array
+  
+  #Abundance parameter (lambda)
+  for (k in 1:nspecies) {
+    lambda[k] <- exp(alpha.lambda[k])  
+  }
+  
+  #True abundance year 1
+  for (k in 1:nspecies) {
+    N[, k, 1] <- rpois(nsites, lambda[k]) 
+  }
+  
+  #True abundance years 2 -> nyears
+  for(i in 1:nsites){
+    for(k in 1:nspecies){
+      for(t in 1:(nyears-1)){
+        phi[i,k,t] <- plogis(alpha.phi[k] + beta.phi[k]*(N[i,k,t]-mean(N[,k,],na.rm=T)) + eps.phi[i,k,t]) #survival probability
+        gamma[i,k,t] <- exp(alpha.gamma[k] + beta.gamma[k]*(N[i,k,t]-mean(N[,k,],na.rm=T)) + eps.gamma[i,k,t]) #recruitment probability
+        S[i,k,t+1] <- rbinom(1, N[i,k,t], phi[i,k,t]) #survival of spp. k at site i during year t
+        R[i,k,t+1] <- ifelse(gamma[i,k,t]=="Inf", rpois(1,N[i,k,t]*1000), rpois(1,N[i,k,t]*gamma[i,k,t])) #relative recruitment of spp. k at site i during year t
+        N[i,k,t+1] <- S[i,k,t+1] + R[i,k,t+1] #latent abundance in year t+1
+      }
+    }
+  }
+  
+  #Detection probability
+  for(k in 1:nspecies){
+    for(j in 1:nsurveys){
+      for(t in 1:nyears){
+        p[, k, j, t] <- plogis(alpha.p[k] + eps.p[,k,t]) #detection probability
+      }
+    }
+  }
+  
+  #Observation array from true abundance array
+  for (i in 1:nsites) {
+    for (k in 1:nspecies) {
+      for (j in 1:nsurveys) {
+        for (t in 1:nyears){
+          y.all[i, k, j, t] <- rbinom(1, N[i, k, t], p[i, k, j, t])
+        }
+      }
+    }
+  }
+  
+  for (k in 1:nspecies) {
+    detected.at.all[k] <- if (any(y.all[ , k, , ] > 0)) 
+      TRUE
+    else FALSE
+  }
+  
+  y.obs <- y.all[ , detected.at.all, , ]
+  Ntotal.obs <- sum(detected.at.all)
+  
+  return(list(nsites = nsites, nsurveys = nsurveys, nspecies = nspecies, nyears=nyears,
+              mean.lambda = mean.lambda, mu.loglam = mu.loglam, 
+              sd.lambda = sd.lambda, mean.phi = mean.phi, sd.phi = sd.phi, 
+              mu.beta.phi = mu.beta.phi, sd.beta.phi = sd.beta.phi,
+              sd.eps.phi = sd.eps.phi, 
+              mean.gamma = mean.gamma, sd.gamma = sd.gamma,
+              mu.beta.gamma = mu.beta.gamma, sd.beta.gamma = sd.beta.gamma, 
+              sd.eps.gamma = sd.eps.gamma, 
+              mean.p = mean.p, sd.p = sd.p, sd.eps.p = sd.eps.p, 
+              lambda = lambda, phi = phi, gamma = gamma, p = p, 
+              N = N, R = R, y.all = y.all, y.obs = y.obs, Ntotal.obs = Ntotal.obs))
+}
+
+
+##########################################################################################################
+###Function #8: Simulate data for a dynamic community abundance model with stochasticity and covariates###
+##########################################################################################################
+
+simStochCovsDCAM<-function (nsites = 20, nsurveys = 3, nspecies = 5, nyears = 3,
+                            mean.lambda = 4, sd.lambda = 0.5, mu.beta.lambda = 0, 
+                            sd.beta.lambda = 0.3, mean.phi = 0.7, sd.phi = 0.1, mu.beta.phi = 0, sd.beta.phi = 0.3,
+                            mu.nu.phi = -0.05, sd.nu.phi = 0.01, sd.eps.phi = 0.1,
+                            mean.gamma = 0.3, sd.gamma = 0.1, mu.beta.gamma = 0, sd.beta.gamma = 0.3, 
+                            mu.nu.gamma = -0.05, sd.nu.gamma = 0.01, sd.eps.gamma = 0.1, 
+                            mean.p = 0.7, sd.p = 0.2, mu.beta.p = 0, sd.beta.p = 0.3,
+                            sd.eps.p = 0.1, show.plot = TRUE){
+  #Dimension values
+  spec <- 1:nspecies
+  site <- 1:nsites
+  year <- 1:nyears
+  survey <- 1:nsurveys
+  
+  #Filling arrays for data
+  lambda <- array(NA, dim = c(nsites, nspecies), 
+                  dimnames = list(paste("Site", site ,sep = ""),
+                                  paste("Spec", spec ,sep ="")))
+  
+  
+  N <- S <- R <- phi <- gamma <- eps.phi <- eps.gamma <- eps.p <- array(NA, dim = c(nsites, nspecies, nyears), 
+                                                                        dimnames = list(paste("Site", site, sep = ""), 
+                                                                                        paste("Spec", spec, sep = ""), paste("Year", year, sep = "")))
+  
+  y.all <- y.obs <- p <- array(NA, dim = c(nsites, nspecies, nsurveys, nyears),
+                               dimnames = list(paste("Site", 
+                                                     site, sep = ""), paste("Spec", spec, 
+                                                                            sep = ""), paste("Survey", survey, sep = ""),
+                                               paste("Year", year, sep = "")))
+  
+  detected.at.all <- rep(NA, nspecies)
+  lambda.cov <- rnorm(nsites) #standardized to mean 0 var 1
+  phi.cov <- array(data = rnorm(nsites * nyears), dim = c(nsites, nyears)) #standardized as above
+  gamma.cov <- array(data = rnorm(nsites * nyears), dim = c(nsites, nyears)) #standardized as above
+  p.cov <- array(data = rnorm(nsites * nsurveys * nyears), dim = c(nsites, nsurveys, nyears)) #standardized as above
+  
+  
+  ##Generating parameters for link functions with specified hyperpriors 
+  #Abundance
+  mu.loglam <- log(mean.lambda)
+  alpha.lambda <- rnorm(nspecies, mu.loglam, sd.lambda) #Intercept
+  beta.lambda <- rnorm(nspecies, mu.beta.lambda, sd.beta.lambda) #Coeff
+  
+  #Apparent Survival
+  mu.lphi <- ifelse(mean.phi == "1", 500, qlogis(mean.phi))
+  alpha.phi <- rnorm(nspecies, mu.lphi, sd.phi) #Intercept
+  beta.phi <- rnorm(nspecies, mu.beta.phi, sd.beta.phi) #Coeff
+  nu.phi <- rnorm(nspecies, mu.nu.phi, sd.nu.phi) #Dens. Dep.
+  for(i in 1:nsites){
+    for(t in 1:nyears){
+      eps.phi[i,,t] <- rnorm(nspecies, 0, sd.eps.phi) #Stoch
+    }
+  }
+  
+  #Recruitment
+  mu.loggam <- log(mean.gamma)
+  alpha.gamma <- rnorm(nspecies, mu.loggam, sd.gamma) #Intercept
+  beta.gamma <- rnorm(nspecies, mu.beta.gamma, sd.beta.gamma) #Coeff
+  nu.gamma <- rnorm(nspecies, mu.nu.gamma, sd.nu.gamma) #Dens. Dep.
+  for(i in 1:nsites){
+    for(t in 1:nyears){
+      eps.gamma[i,,t] <- rnorm(nspecies, 0, sd.eps.gamma) #Stoch
+    }
+  }
+  
+  #Detection
+  mu.lp <- ifelse(mean.p == "1", 500, qlogis(mean.p))
+  alpha.p <- rnorm(nspecies, mu.lp, sd.p) #Intercept
+  beta.p <- rnorm(nspecies, mu.beta.p, sd.beta.p) #Coeff
+  for(i in 1:nsites){
+    for(t in 1:nyears){
+      eps.p[i,,t] <- rnorm(nspecies, 0, sd.eps.p) #Stoch
+    }
+  }
+  
+  ##Generate focal parameters with link functions and fill true abundance array
+  
+  #Abundance parameter (lambda)
+  for (k in 1:nspecies) {
+    lambda[, k] <- exp(alpha.lambda[k] + beta.lambda[k] * lambda.cov) # initial abundance 
+  }
+  
+  #True abundance year 1
+  for (i in 1:nsites) {
+    for (k in 1:nspecies) {
+      N[i, k, 1] <- rpois(1, lambda[i, k])
+    }
+  }
+  
+  #True abundance years 2 -> nyears
+  for(i in 1:nsites){
+    for(k in 1:nspecies){
+      for(t in 1:(nyears-1)){
+        phi[i,k,t] <- plogis(alpha.phi[k] + nu.phi[k]*(N[i,k,t]-mean(N[,k,],na.rm=T)) + beta.phi[k]*phi.cov[i,t] + eps.phi[i,k,t]) #survival probability
+        gamma[i,k,t] <- exp(alpha.gamma[k] + nu.gamma[k]*(N[i,k,t]-mean(N[,k,],na.rm=T)) + beta.gamma[k]*gamma.cov[i,t] + eps.gamma[i,k,t]) #recruitment probability
+        S[i,k,t+1] <- rbinom(1, N[i,k,t], phi[i,k,t]) #survival of spp. k at site i during year t
+        R[i,k,t+1] <- ifelse(gamma[i,k,t]=="Inf", rpois(1,N[i,k,t]*1000), rpois(1,N[i,k,t]*gamma[i,k,t])) #relative recruitment of spp. k at site i during year t
+        N[i,k,t+1] <- S[i,k,t+1] + R[i,k,t+1] #latent abundance in year t+1
+      }
+    }
+  }
+  
+  #Detection probability
+  for(k in 1:nspecies){
+    for(j in 1:nsurveys){
+      for(t in 1:nyears){
+        p[, k, j, t] <- plogis(alpha.p[k] + beta.p[k] * p.cov[,j,t] + eps.p[,k,t]) #detection probability
+      }
+    }
+  }
+  
+  #Observation array from true abundance array
+  for (i in 1:nsites) {
+    for (k in 1:nspecies) {
+      for (j in 1:nsurveys) {
+        for (t in 1:nyears){
+          y.all[i, k, j, t] <- rbinom(1, N[i, k, t], p[i, k, j, t])
+        }
+      }
+    }
+  }
+  
+  for (k in 1:nspecies) {
+    detected.at.all[k] <- if (any(y.all[ , k, , ] > 0)) 
+      TRUE
+    else FALSE
+  }
+  
+  y.obs <- y.all[ , detected.at.all, , ]
+  Ntotal.obs <- sum(detected.at.all)
+  
+  return(list(nsites = nsites, nsurveys = nsurveys, nspecies = nspecies, nyears=nyears,
+              lambda.cov = lambda.cov, phi.cov = phi.cov, gamma.cov = gamma.cov, p.cov = p.cov,
+              mean.lambda = mean.lambda, sd.lambda = sd.lambda,
+              mu.beta.lambda = mu.beta.lambda, sd.beta.lambda = sd.beta.lambda, 
+              mean.phi = mean.phi, sd.phi = sd.phi, mu.nu.phi = mu.nu.phi, sd.nu.phi = sd.nu.phi,
+              mu.beta.phi = mu.beta.phi, sd.beta.phi = sd.beta.phi, sd.eps.phi = sd.eps.phi, 
+              mean.gamma = mean.gamma, sd.gamma = sd.gamma, mu.nu.gamma = mu.nu.gamma, 
+              sd.nu.gamma = sd.nu.gamma,mu.beta.gamma = mu.beta.gamma, sd.beta.gamma = sd.beta.gamma,
+              sd.eps.gamma = sd.eps.gamma, mean.p = mean.p, sd.p = sd.p, mu.beta.p = mu.beta.p,
+              sd.beta.p = sd.beta.p, sd.eps.p = sd.eps.p, lambda = lambda, phi = phi, gamma = gamma, p = p, 
+              N = N, R = R, y.all = y.all, y.obs = y.obs, Ntotal.obs = Ntotal.obs))
+}
+
+#########
+###END###
+#########
